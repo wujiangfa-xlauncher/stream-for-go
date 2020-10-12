@@ -61,7 +61,7 @@ func (f ForEachOp) EvaluateParallel(sourceStage *pipeline) {
 	waitGroup := sync.WaitGroup{}
 	waitGroup.Add(len(sourceStage.data))
 	for _, v := range sourceStage.data {
-		data:=v
+		data := v
 		go func() {
 			defer waitGroup.Done()
 			headStage.do(headStage.nextStage, data)
@@ -108,8 +108,8 @@ func New(arr interface{}) *pipeline {
 type pipeline struct {
 	lock           sync.Mutex
 	data, tmpData  []interface{}
-	sourceStage    *pipeline
 	previousStage  *pipeline
+	sourceStage    *pipeline
 	nextStage      *pipeline
 	parallel, stop bool
 	do             func(nextStage *pipeline, v interface{})
@@ -125,7 +125,7 @@ func (p *pipeline) ToSlice(targetSlice interface{}) {
 		previousStage: p,
 		sourceStage:   p.sourceStage,
 		do: func(nextStage *pipeline, v interface{}) {
-			if p.parallel {
+			if p.sourceStage.parallel {
 				p.lock.Lock()
 				defer p.lock.Unlock()
 			}
@@ -141,15 +141,12 @@ func (p *pipeline) Reduce(function BiFunction) interface{} {
 		previousStage: p,
 		sourceStage:   p.sourceStage,
 		do: func(nextStage *pipeline, v interface{}) {
-			if p.parallel {
+			if p.sourceStage.parallel {
 				p.lock.Lock()
 				defer p.lock.Unlock()
 			}
 			if p.tmpData == nil {
-				p.tmpData = make([]interface{}, len(p.sourceStage.data))
-			}
-			if p.tmpData[0] == nil {
-				p.tmpData[0] = v
+				p.tmpData = append(p.tmpData, v)
 			} else {
 				res := function(p.tmpData[0], v)
 				p.tmpData[0] = res
@@ -202,20 +199,32 @@ func (p *pipeline) matchOps(predicate Predicate, flag bool) bool {
 
 func (p *pipeline) Distinct(comparator Comparator) Stream {
 	p.nilCheck(comparator)
-	t := p.statefulStage()
-	t.evaluate(&ForEachOp{})
-	for i := range p.tmpData {
-		flag := true
-		for j := range t.data {
-			if comparator(p.tmpData[i], t.data[j]) {
-				flag = false
-				break
+	t := &pipeline{
+		previousStage: p,
+		sourceStage:   p.sourceStage,
+		do: func(nextStage *pipeline, v interface{}) {
+			if p.sourceStage.parallel {
+				p.lock.Lock()
+				defer p.lock.Unlock()
 			}
-		}
-		if flag {
-			t.data = append(t.data, p.tmpData[i])
-		}
+			if p.tmpData == nil {
+				p.tmpData = append(p.tmpData, v)
+			} else {
+				flag := true
+				for _, tmp := range p.tmpData {
+					if comparator(tmp, v) {
+						flag = false
+						break
+					}
+				}
+				if flag {
+					p.tmpData = append(p.tmpData, v)
+				}
+			}
+		},
 	}
+	t.evaluate(&ForEachOp{})
+	t.data = p.tmpData
 	t.parallel = p.sourceStage.parallel
 	t.sourceStage = t
 	return t
@@ -337,16 +346,11 @@ func (p *pipeline) statefulStage() *pipeline {
 		previousStage: p,
 		sourceStage:   p.sourceStage,
 		do: func(nextStage *pipeline, v interface{}) {
-			p.addTmpData(v)
+			if p.sourceStage.parallel {
+				p.lock.Lock()
+				defer p.lock.Unlock()
+			}
+			p.tmpData = append(p.tmpData, v)
 		},
 	}
 }
-
-func (p *pipeline) addTmpData(v interface{}) {
-	if p.parallel {
-		p.lock.Lock()
-		defer p.lock.Unlock()
-	}
-	p.tmpData = append(p.tmpData, v)
-}
-
