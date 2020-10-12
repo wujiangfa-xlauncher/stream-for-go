@@ -1,4 +1,4 @@
-package stream_for_go
+package stream
 
 import (
 	"fmt"
@@ -32,58 +32,191 @@ func createStudents() []student {
 	return students
 }
 
-func Test1(t *testing.T) {
-
+func TestForEach(t *testing.T) {
 	students := createStudents()
-	New(students).Peek(func(v interface{}) {
-		s := v.(student)
-		fmt.Println(s.String())
-	}).Filter(func(v interface{}) bool {
-		s := v.(student)
-		return len(s.name) > 3
-	}).Peek(func(v interface{}) {
-		s := v.(student)
-		fmt.Println(s.String())
-	}).Map(func(v interface{}) interface{} {
-		s := v.(student)
-		return s.name
+	New(students).ForEach(func(v interface{}) {
+		fmt.Println(v)
+	})
+}
+
+func TestFilter(t *testing.T) {
+	students := createStudents()
+	New(students).Filter(func(v interface{}) bool {
+		return v.(student).age>20
 	}).ForEach(func(v interface{}) {
 		fmt.Println(v)
 	})
 }
 
-func Test2(t *testing.T) {
+func TestMap(t *testing.T) {
+	students := createStudents()
+	New(students).Map(func(v interface{}) interface{} {
+		return v.(student).name
+	}).ForEach(func(v interface{}) {
+		fmt.Println(v)
+	})
+
+	fmt.Println("--------------")
+
+	var names = [4]string{"zhangsan","lisi","wangwu","zhaoliu"}
+	New(names).Map(func(v interface{}) interface{} {
+		s := v.(string)
+		return student{
+			id: len(s),
+			name:   s,
+			age:    len(s)*4,
+		}
+	}).ForEach(func(v interface{}) {
+		fmt.Println(v)
+	})
+}
+
+func TestPeek(t *testing.T) {
+	students := createStudents()
+	New(students).Peek(func(v interface{}) {
+		fmt.Println(v.(student).scores)
+	}).ForEach(func(v interface{}) {
+		fmt.Println(v)
+	})
+}
+
+func TestStateless(t *testing.T) {
+	students := createStudents()
+	New(students).Peek(func(v interface{}) {
+		fmt.Println(v)
+	}).Filter(func(v interface{}) bool {
+		return v.(student).age>20
+	}).Map(func(v interface{}) interface{} {
+		return v.(student).name
+	}).Filter(func(v interface{}) bool {
+		return len(v.(string))>3
+	}).ForEach(func(v interface{}) {
+		fmt.Println("Res:"+v.(string))
+	})
+}
+
+func TestSkip(t *testing.T) {
+	students := createStudents()
+	New(students).Skip(5).ForEach(func(v interface{}) {
+		fmt.Println(v)
+	})
+}
+
+func TestLimit(t *testing.T) {
+	students := createStudents()
+	New(students).Limit(5).ForEach(func(v interface{}) {
+		fmt.Println(v)
+	})
+}
+
+func TestDistinct(t *testing.T) {
+	students := createStudents()
+	New(students).Distinct(func(i, j interface{}) bool {
+		return i.(student).name == j.(student).name
+	}).ForEach(func(v interface{}) {
+		fmt.Println(v)
+	})
+}
+
+func TestSorted(t *testing.T) {
 	students := createStudents()
 	New(students).Sorted(func(i, j interface{}) bool {
 		return i.(student).age < j.(student).age
-	}).Skip(1).Distinct(func(i, j interface{}) bool {
-		return i.(student).age == j.(student).age
-	}).Map(func(v interface{}) interface{} {
-		return v.(student).name
-	}).Distinct(func(i, j interface{}) bool {
-		return i == j
-	}).Filter(func(v interface{}) bool {
-		return len(v.(string)) > 3
-	}).Map(func(v interface{}) interface{} {
-		return v.(string) + "01"
 	}).ForEach(func(v interface{}) {
 		fmt.Println(v)
 	})
 }
 
-func Test3(t *testing.T) {
+func TestStateful(t *testing.T) {
+	students := createStudents()
+	New(students).Limit(7).Distinct(func(i, j interface{}) bool {
+		return i.(student).name == j.(student).name
+	}).Sorted(func(i, j interface{}) bool {
+		return i.(student).age < j.(student).age
+	}).ForEach(func(v interface{}) {
+		fmt.Println(v)
+	})
+}
+
+func TestAllMatch(t *testing.T) {
 	students := createStudents()
 	allMatch := New(students).Peek(func(v interface{}) {
-		fmt.Println(v.(student).name)
-	}).Map(func(v interface{}) interface{} {
-		return v.(student).name
-	}).NoneMatch(func(v interface{}) bool {
-		return len(v.(string)) >= 5
+		fmt.Println(v)
+	}).AllMatch(func(v interface{}) bool {
+		return v.(student).age > 15
 	})
 	fmt.Println(allMatch)
 }
 
-func Test4(t *testing.T) {
+func TestAnyMatch(t *testing.T) {
+	students := createStudents()
+	anyMatch := New(students).Peek(func(v interface{}) {
+		fmt.Println(v)
+	}).AnyMatch(func(v interface{}) bool {
+		return v.(student).age > 20
+	})
+	fmt.Println(anyMatch)
+}
+
+func TestNoneMatch(t *testing.T) {
+	students := createStudents()
+	noneMatch := New(students).Peek(func(v interface{}) {
+		fmt.Println(v)
+	}).NoneMatch(func(v interface{}) bool {
+		return v.(student).age > 20
+	})
+	fmt.Println(noneMatch)
+}
+
+func TestCount(t *testing.T) {
+	students := createStudents()
+	count := New(students).Count()
+	fmt.Println(count)
+	filterCount := New(students).Filter(func(v interface{}) bool {
+		return v.(student).age > 20
+	}).Count()
+	fmt.Println(filterCount)
+}
+
+func TestReduce(t *testing.T) {
+	students := createStudents()
+	name := New(students).Map(func(v interface{}) interface{} {
+		return v.(student).name
+	}).Reduce(func(t, u interface{}) interface{} {
+		return t.(string) + "," + u.(string)
+	})
+	fmt.Println(name)
+
+	age := New(students).Map(func(v interface{}) interface{} {
+		return v.(student).age
+	}).Reduce(func(t, u interface{}) interface{} {
+		return t.(int) + u.(int)
+	})
+	fmt.Println(age)
+}
+
+func TestToSlice(t *testing.T) {
+	students := createStudents()
+	var ageArray []int
+	New(students).Map(func(v interface{}) interface{} {
+		return v.(student).age
+	}).ToSlice(&ageArray)
+	fmt.Println(ageArray)
+
+	var nameArray []string
+	New(students).Map(func(v interface{}) interface{} {
+		return v.(student).name
+	}).ToSlice(&nameArray)
+	fmt.Println(nameArray)
+
+	var studentArray []student
+	New(students).Filter(func(v interface{}) bool {
+		return len(v.(student).name) > 3
+	}).ToSlice(&studentArray)
+	fmt.Println(studentArray)
+}
+
+func TestStream(t *testing.T) {
 	students := createStudents()
 	count := New(students).Map(func(v interface{}) interface{} {
 		return v.(student).age
@@ -92,35 +225,14 @@ func Test4(t *testing.T) {
 	}).Distinct(func(i, j interface{}) bool {
 		return i == j
 	}).Filter(func(v interface{}) bool {
-		return v.(int) > 0
+		return v.(int) > 16
 	}).Peek(func(v interface{}) {
 		fmt.Println(v)
 	}).Count()
 	fmt.Println(count)
 }
 
-func Test5(t *testing.T) {
-	students := createStudents()
-	reduce := New(students).Peek(func(v interface{}) {
-		fmt.Println(v)
-	}).Map(func(v interface{}) interface{} {
-		return v.(student).name
-	}).Reduce(func(t, u interface{}) interface{} {
-		return t.(string) + "," + u.(string)
-	})
-	fmt.Println(reduce)
-}
-
-func Test6(t *testing.T) {
-	students := createStudents()
-	var data []student
-	New(students).Filter(func(v interface{}) bool {
-		return v.(student).age > 20
-	}).ToSlice(&data)
-	fmt.Println(data)
-}
-
-func Test7(t *testing.T) {
+func TestParallel(t *testing.T) {
 	students := createStudents()
 	reduce := Parallel(students).Peek(func(v interface{}) {
 		fmt.Println(v)
@@ -130,31 +242,4 @@ func Test7(t *testing.T) {
 		return t.(int) + u.(int)
 	})
 	fmt.Println(reduce)
-}
-
-func Test8(t *testing.T) {
-	students := createStudents()
-	match := Parallel(students).Peek(func(v interface{}) {
-		s := v.(student)
-		fmt.Println(s.String())
-	}).NoneMatch(func(v interface{}) bool {
-		return v.(student).age > 30
-	})
-	fmt.Println(match)
-}
-
-func Test9(t *testing.T) {
-	students := createStudents()
-	count := Parallel(students).Map(func(v interface{}) interface{} {
-		return v.(student).age
-	}).Sorted(func(i, j interface{}) bool {
-		return i.(int) > j.(int)
-	}).Distinct(func(i, j interface{}) bool {
-		return i == j
-	}).Filter(func(v interface{}) bool {
-		return v.(int) > 0
-	}).Peek(func(v interface{}) {
-		fmt.Println(v)
-	}).Count()
-	fmt.Println(count)
 }

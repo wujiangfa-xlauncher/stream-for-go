@@ -1,4 +1,4 @@
-package stream_for_go
+package stream
 
 import (
 	"reflect"
@@ -80,13 +80,15 @@ func (f ForEachOp) EvaluateSequential(sourceStage *pipeline) {
 	}
 }
 
-func Parallel(arr interface{}) *pipeline {
-	p := New(arr)
-	p.parallel = true
-	return p
+func Parallel(arr interface{}) Stream {
+	return new(arr, true)
 }
 
-func New(arr interface{}) *pipeline {
+func New(arr interface{}) Stream {
+	return new(arr, false)
+}
+
+func new(arr interface{}, parallel bool) Stream {
 	data := make([]interface{}, 0)
 	dataValue := reflect.ValueOf(&data).Elem()
 	arrValue := reflect.ValueOf(arr)
@@ -100,7 +102,7 @@ func New(arr interface{}) *pipeline {
 	} else {
 		panic("the type of arr parameter must be Array or Slice")
 	}
-	p := &pipeline{data: data}
+	p := &pipeline{data: data, parallel: parallel}
 	p.sourceStage = p
 	return p
 }
