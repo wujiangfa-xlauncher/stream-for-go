@@ -90,18 +90,13 @@ func New(arr interface{}) Stream {
 }
 
 func new(arr interface{}, parallel bool) Stream {
+	nilCheck(arr)
 	data := make([]interface{}, 0)
 	dataValue := reflect.ValueOf(&data).Elem()
 	arrValue := reflect.ValueOf(arr)
-	if arrValue.Kind() == reflect.Ptr {
-		arrValue = arrValue.Elem()
-	}
-	if arrValue.Kind() == reflect.Slice || arrValue.Kind() == reflect.Array {
-		for i := 0; i < arrValue.Len(); i++ {
-			dataValue.Set(reflect.Append(dataValue, arrValue.Index(i)))
-		}
-	} else {
-		panic("the type of arr parameter must be Array or Slice")
+	kindCheck(arrValue)
+	for i := 0; i < arrValue.Len(); i++ {
+		dataValue.Set(reflect.Append(dataValue, arrValue.Index(i)))
 	}
 	p := &pipeline{data: data, parallel: parallel}
 	p.sourceStage = p
@@ -119,7 +114,7 @@ type pipeline struct {
 }
 
 func (p *pipeline) MaxMin(comparator Comparator) interface{} {
-	p.nilCheck(comparator)
+	nilCheck(comparator)
 	return p.Reduce(func(t, u interface{}) interface{} {
 		if comparator(t, u) {
 			return t
@@ -133,6 +128,7 @@ func (p *pipeline) ToSlice(targetSlice interface{}) {
 	if targetValue.Kind() != reflect.Ptr {
 		panic("target slice must be a pointer")
 	}
+	kindCheck(targetValue)
 	sliceValue := reflect.Indirect(targetValue)
 	t := &pipeline{
 		previousStage: p,
@@ -149,7 +145,7 @@ func (p *pipeline) ToSlice(targetSlice interface{}) {
 }
 
 func (p *pipeline) Reduce(function BiFunction) interface{} {
-	p.nilCheck(function)
+	nilCheck(function)
 	t := &pipeline{
 		previousStage: p,
 		sourceStage:   p.sourceStage,
@@ -167,6 +163,9 @@ func (p *pipeline) Reduce(function BiFunction) interface{} {
 		},
 	}
 	t.evaluate(&ForEachOp{})
+	if p.tmpData == nil {
+		return nil
+	}
 	return p.tmpData[0]
 }
 
@@ -189,7 +188,7 @@ func (p *pipeline) AllMatch(predicate Predicate) bool {
 }
 
 func (p *pipeline) matchOps(predicate Predicate, flag bool) bool {
-	p.nilCheck(predicate)
+	nilCheck(predicate)
 	t := &pipeline{
 		previousStage: p,
 		sourceStage:   p.sourceStage,
@@ -211,7 +210,7 @@ func (p *pipeline) matchOps(predicate Predicate, flag bool) bool {
 }
 
 func (p *pipeline) Distinct(comparator Comparator) Stream {
-	p.nilCheck(comparator)
+	nilCheck(comparator)
 	t := &pipeline{
 		previousStage: p,
 		sourceStage:   p.sourceStage,
@@ -244,7 +243,7 @@ func (p *pipeline) Distinct(comparator Comparator) Stream {
 }
 
 func (p *pipeline) Sorted(comparator Comparator) Stream {
-	p.nilCheck(comparator)
+	nilCheck(comparator)
 	t := p.statefulStage()
 	t.evaluate(&ForEachOp{})
 	s := &sortData{data: p.tmpData, comparator: comparator}
@@ -288,7 +287,7 @@ func (p *pipeline) Limit(maxSize int) Stream {
 }
 
 func (p *pipeline) Peek(consumer Consumer) Stream {
-	p.nilCheck(consumer)
+	nilCheck(consumer)
 	return &pipeline{
 		previousStage: p,
 		sourceStage:   p.sourceStage,
@@ -300,7 +299,7 @@ func (p *pipeline) Peek(consumer Consumer) Stream {
 }
 
 func (p *pipeline) Filter(predicate Predicate) Stream {
-	p.nilCheck(predicate)
+	nilCheck(predicate)
 	return &pipeline{
 		previousStage: p,
 		sourceStage:   p.sourceStage,
@@ -313,7 +312,7 @@ func (p *pipeline) Filter(predicate Predicate) Stream {
 }
 
 func (p *pipeline) ForEach(consumer Consumer) {
-	p.nilCheck(consumer)
+	nilCheck(consumer)
 	t := &pipeline{
 		previousStage: p,
 		sourceStage:   p.sourceStage,
@@ -325,7 +324,7 @@ func (p *pipeline) ForEach(consumer Consumer) {
 }
 
 func (p *pipeline) Map(function Function) Stream {
-	p.nilCheck(function)
+	nilCheck(function)
 	return &pipeline{
 		previousStage: p,
 		sourceStage:   p.sourceStage,
@@ -336,7 +335,7 @@ func (p *pipeline) Map(function Function) Stream {
 }
 
 func (p *pipeline) evaluate(op TerminalOp) {
-	p.nilCheck(op)
+	nilCheck(op)
 	for headStage := p; headStage != nil && headStage.previousStage != nil; headStage = headStage.previousStage {
 		headStage.previousStage.nextStage = headStage
 	}
@@ -345,12 +344,6 @@ func (p *pipeline) evaluate(op TerminalOp) {
 		op.EvaluateParallel(p.sourceStage)
 	} else {
 		op.EvaluateSequential(p.sourceStage)
-	}
-}
-
-func (p *pipeline) nilCheck(v interface{}) {
-	if v == nil {
-		panic("nil forbidden")
 	}
 }
 
@@ -365,5 +358,21 @@ func (p *pipeline) statefulStage() *pipeline {
 			}
 			p.tmpData = append(p.tmpData, v)
 		},
+	}
+}
+
+func nilCheck(v interface{}) {
+	if v == nil {
+		panic("nil forbidden")
+	}
+}
+
+func kindCheck(v reflect.Value) {
+	nilCheck(v)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Slice && v.Kind() != reflect.Array {
+		panic("the type of arr parameter must be Array or Slice")
 	}
 }

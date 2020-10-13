@@ -42,7 +42,7 @@ func TestForEach(t *testing.T) {
 func TestFilter(t *testing.T) {
 	students := createStudents()
 	New(students).Filter(func(v interface{}) bool {
-		return v.(student).age>20
+		return v.(student).age > 20
 	}).ForEach(func(v interface{}) {
 		fmt.Println(v)
 	})
@@ -58,13 +58,13 @@ func TestMap(t *testing.T) {
 
 	fmt.Println("--------------")
 
-	var names = [4]string{"zhangsan","lisi","wangwu","zhaoliu"}
+	var names = [4]string{"zhangsan", "lisi", "wangwu", "zhaoliu"}
 	New(names).Map(func(v interface{}) interface{} {
 		s := v.(string)
 		return student{
-			id: len(s),
-			name:   s,
-			age:    len(s)*4,
+			id:   len(s),
+			name: s,
+			age:  len(s) * 4,
 		}
 	}).ForEach(func(v interface{}) {
 		fmt.Println(v)
@@ -85,13 +85,13 @@ func TestStateless(t *testing.T) {
 	New(students).Peek(func(v interface{}) {
 		fmt.Println(v)
 	}).Filter(func(v interface{}) bool {
-		return v.(student).age>20
+		return v.(student).age > 20
 	}).Map(func(v interface{}) interface{} {
 		return v.(student).name
 	}).Filter(func(v interface{}) bool {
-		return len(v.(string))>3
+		return len(v.(string)) > 3
 	}).ForEach(func(v interface{}) {
-		fmt.Println("Res:"+v.(string))
+		fmt.Println("Res:" + v.(string))
 	})
 }
 
@@ -107,6 +107,14 @@ func TestLimit(t *testing.T) {
 	New(students).Limit(5).ForEach(func(v interface{}) {
 		fmt.Println(v)
 	})
+
+	fmt.Println("--------")
+
+	var ints []int
+	New(ints).Limit(5).ForEach(func(v interface{}) {
+		fmt.Println(v)
+	})
+
 }
 
 func TestDistinct(t *testing.T) {
@@ -122,6 +130,24 @@ func TestSorted(t *testing.T) {
 	students := createStudents()
 	New(students).Sorted(func(i, j interface{}) bool {
 		return i.(student).age < j.(student).age
+	}).ForEach(func(v interface{}) {
+		fmt.Println(v)
+	})
+
+	fmt.Println("--------")
+
+	var ints = []int{1}
+	New(ints).Sorted(func(i, j interface{}) bool {
+		return i.(int) < j.(int)
+	}).ForEach(func(v interface{}) {
+		fmt.Println(v)
+	})
+
+	fmt.Println("--------")
+
+	ints = []int{}
+	New(ints).Sorted(func(i, j interface{}) bool {
+		return i.(int) < j.(int)
 	}).ForEach(func(v interface{}) {
 		fmt.Println(v)
 	})
@@ -193,6 +219,18 @@ func TestReduce(t *testing.T) {
 		return t.(int) + u.(int)
 	})
 	fmt.Println(age)
+
+	var ints = []int{1}
+	reduce := New(ints).Reduce(func(t, u interface{}) interface{} {
+		return t.(int) + u.(int)
+	})
+	fmt.Println(reduce)
+
+	ints = []int{}
+	reduce = New(ints).Reduce(func(t, u interface{}) interface{} {
+		return t.(int) + u.(int)
+	})
+	fmt.Println(reduce)
 }
 
 func TestToSlice(t *testing.T) {
@@ -228,7 +266,7 @@ func TestMaxMin(t *testing.T) {
 	})
 	fmt.Println(min)
 
-	var ints = [10]int{1,3,7,2,6,5,0,-1,-6,-9}
+	var ints = [10]int{1, 3, 7, 2, 6, 5, 0, -1, -6, -9}
 	max = New(ints).Peek(func(v interface{}) {
 		fmt.Println(v)
 	}).MaxMin(func(i, j interface{}) bool {
