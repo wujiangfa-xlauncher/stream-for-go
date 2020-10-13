@@ -216,6 +216,36 @@ func TestToSlice(t *testing.T) {
 	fmt.Println(studentArray)
 }
 
+func TestMaxMin(t *testing.T) {
+	students := createStudents()
+	max := New(students).MaxMin(func(i, j interface{}) bool {
+		return i.(student).age > j.(student).age
+	})
+	fmt.Println(max)
+
+	min := Parallel(students).MaxMin(func(i, j interface{}) bool {
+		return i.(student).age < j.(student).age
+	})
+	fmt.Println(min)
+
+	var ints = [10]int{1,3,7,2,6,5,0,-1,-6,-9}
+	max = New(ints).Peek(func(v interface{}) {
+		fmt.Println(v)
+	}).MaxMin(func(i, j interface{}) bool {
+		return i.(int) > j.(int)
+	})
+	fmt.Print("max :")
+	fmt.Println(max)
+
+	min = Parallel(ints).Peek(func(v interface{}) {
+		fmt.Println(v)
+	}).MaxMin(func(i, j interface{}) bool {
+		return i.(int) < j.(int)
+	})
+	fmt.Print("min :")
+	fmt.Println(min)
+}
+
 func TestStream(t *testing.T) {
 	students := createStudents()
 	count := New(students).Map(func(v interface{}) interface{} {

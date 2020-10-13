@@ -21,6 +21,7 @@ type Stream interface {
 	Count() int
 	Reduce(function BiFunction) interface{}
 	ToSlice(targetSlice interface{})
+	MaxMin(comparator Comparator) interface{}
 }
 
 type TerminalOp interface {
@@ -115,6 +116,16 @@ type pipeline struct {
 	nextStage      *pipeline
 	parallel, stop bool
 	do             func(nextStage *pipeline, v interface{})
+}
+
+func (p *pipeline) MaxMin(comparator Comparator) interface{} {
+	p.nilCheck(comparator)
+	return p.Reduce(func(t, u interface{}) interface{} {
+		if comparator(t, u) {
+			return t
+		}
+		return u
+	})
 }
 
 func (p *pipeline) ToSlice(targetSlice interface{}) {

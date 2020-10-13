@@ -386,6 +386,63 @@ Output:
 [Kate Lee Lee Lucy Mask Jim King Jack King Jim]
 [{1 Kate 16 [67 79 61]} {4 Lucy 22 [65 97 86]} {5 Mask 15 [68 78 67]} {7 King 22 [87 91 89]} {8 Jack 16 [91 65 86]} {9 King 21 [94 63 93]}]
 ```
+MaxMin:
+```
+students := createStudents()
+max := New(students).MaxMin(func(i, j interface{}) bool {
+    return i.(student).age > j.(student).age
+})
+fmt.Println(max)
+
+min := Parallel(students).MaxMin(func(i, j interface{}) bool {
+    return i.(student).age < j.(student).age
+})
+fmt.Println(min)
+
+var ints = [10]int{1,3,7,2,6,5,0,-1,-6,-9}
+max = New(ints).Peek(func(v interface{}) {
+    fmt.Println(v)
+}).MaxMin(func(i, j interface{}) bool {
+    return i.(int) > j.(int)
+})
+fmt.Print("max :")
+fmt.Println(max)
+
+min = Parallel(ints).Peek(func(v interface{}) {
+    fmt.Println(v)
+}).MaxMin(func(i, j interface{}) bool {
+    return i.(int) < j.(int)
+})
+fmt.Print("min :")
+fmt.Println(min)
+```
+Output:
+```
+{7 King 22 [87 91 89]}
+{5 Mask 15 [68 78 67]}
+1
+3
+7
+2
+6
+5
+0
+-1
+-6
+-9
+max :7
+-9
+5
+0
+-1
+-6
+3
+7
+2
+1
+6
+min :-9
+```
 
 ----------
 ### Demo 
