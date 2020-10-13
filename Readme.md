@@ -34,26 +34,6 @@ Implementation of Java stream API by go language
 ----------
 ### Stateless api
 ----------
-ForEach:
-```
-students := createStudents()
-New(students).ForEach(func(v interface{}) {
-	fmt.Println(v)
-})
-```
-Output:
-```
-{1 Kate 16 [67 79 61]}
-{2 Lee 22 [80 76 80]}
-{3 Lee 15 [62 69 68]}
-{4 Lucy 22 [65 97 86]}
-{5 Mask 15 [68 78 67]}
-{6 Jim 20 [68 90 75]}
-{7 King 22 [87 91 89]}
-{8 Jack 16 [91 65 86]}
-{9 King 21 [94 63 93]}
-{10 Jim 20 [64 99 93]}
-```
 Filter:
 ```
 students := createStudents()
@@ -273,6 +253,26 @@ Output:
 ----------
 ### Terminal api
 ----------
+ForEach:
+```
+students := createStudents()
+New(students).ForEach(func(v interface{}) {
+	fmt.Println(v)
+})
+```
+Output:
+```
+{1 Kate 16 [67 79 61]}
+{2 Lee 22 [80 76 80]}
+{3 Lee 15 [62 69 68]}
+{4 Lucy 22 [65 97 86]}
+{5 Mask 15 [68 78 67]}
+{6 Jim 20 [68 90 75]}
+{7 King 22 [87 91 89]}
+{8 Jack 16 [91 65 86]}
+{9 King 21 [94 63 93]}
+{10 Jim 20 [64 99 93]}
+```
 AllMatch:
 ```
 students := createStudents()
