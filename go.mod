@@ -1,3 +1,3 @@
-module stream_for_go
+module stream-for-go
 
 go 1.13
