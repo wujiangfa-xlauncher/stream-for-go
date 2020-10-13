@@ -82,14 +82,14 @@ func (f ForEachOp) EvaluateSequential(sourceStage *pipeline) {
 }
 
 func Parallel(arr interface{}) Stream {
-	return new(arr, true)
+	return stream(arr, true)
 }
 
 func New(arr interface{}) Stream {
-	return new(arr, false)
+	return stream(arr, false)
 }
 
-func new(arr interface{}, parallel bool) Stream {
+func stream(arr interface{}, parallel bool) Stream {
 	nilCheck(arr)
 	data := make([]interface{}, 0)
 	dataValue := reflect.ValueOf(&data).Elem()
@@ -104,13 +104,13 @@ func new(arr interface{}, parallel bool) Stream {
 }
 
 type pipeline struct {
-	lock           sync.Mutex
-	data, tmpData  []interface{}
-	previousStage  *pipeline
-	sourceStage    *pipeline
-	nextStage      *pipeline
-	parallel, stop bool
-	do             func(nextStage *pipeline, v interface{})
+	lock                    sync.Mutex
+	data, tmpData           []interface{}
+	previousStage           *pipeline
+	sourceStage             *pipeline
+	nextStage               *pipeline
+	parallel, entered, stop bool
+	do                      func(nextStage *pipeline, v interface{})
 }
 
 func (p *pipeline) MaxMin(comparator Comparator) interface{} {
@@ -124,6 +124,7 @@ func (p *pipeline) MaxMin(comparator Comparator) interface{} {
 }
 
 func (p *pipeline) ToSlice(targetSlice interface{}) {
+	nilCheck(targetSlice)
 	targetValue := reflect.ValueOf(targetSlice)
 	if targetValue.Kind() != reflect.Ptr {
 		panic("target slice must be a pointer")
@@ -180,19 +181,28 @@ func (p *pipeline) NoneMatch(predicate Predicate) bool {
 }
 
 func (p *pipeline) AnyMatch(predicate Predicate) bool {
-	return p.matchOps(predicate, true)
+	entered, stop := p.matchOps(predicate, true)
+	if entered {
+		return stop
+	}
+	return false
 }
 
 func (p *pipeline) AllMatch(predicate Predicate) bool {
-	return p.matchOps(predicate, false)
+	entered, stop := p.matchOps(predicate, false)
+	if entered {
+		return !stop
+	}
+	return false
 }
 
-func (p *pipeline) matchOps(predicate Predicate, flag bool) bool {
+func (p *pipeline) matchOps(predicate Predicate, flag bool) (bool, bool) {
 	nilCheck(predicate)
 	t := &pipeline{
 		previousStage: p,
 		sourceStage:   p.sourceStage,
 		do: func(nextStage *pipeline, v interface{}) {
+			p.sourceStage.entered = true
 			match := predicate(v)
 			if !flag {
 				match = !match
@@ -203,10 +213,7 @@ func (p *pipeline) matchOps(predicate Predicate, flag bool) bool {
 		},
 	}
 	t.evaluate(&ForEachOp{})
-	if !flag {
-		return !p.sourceStage.stop
-	}
-	return p.sourceStage.stop
+	return p.sourceStage.entered, p.sourceStage.stop
 }
 
 func (p *pipeline) Distinct(comparator Comparator) Stream {

@@ -172,6 +172,27 @@ func TestAllMatch(t *testing.T) {
 		return v.(student).age > 15
 	})
 	fmt.Println(allMatch)
+
+	allMatch = New(students).Filter(func(v interface{}) bool {
+		return v.(student).age < 15
+	}).Peek(func(v interface{}) {
+		fmt.Println(v)
+	}).AllMatch(func(v interface{}) bool {
+		return v.(student).age > 15
+	})
+	fmt.Println(allMatch)
+
+	allMatch = New(students).Skip(10).AllMatch(func(v interface{}) bool {
+		return v.(student).age > 15
+	})
+	fmt.Println(allMatch)
+
+	var ints = []int{}
+	allMatch = New(ints).AllMatch(func(v interface{}) bool {
+		return v.(int) > 0
+	})
+	fmt.Println(allMatch)
+
 }
 
 func TestAnyMatch(t *testing.T) {
@@ -182,6 +203,26 @@ func TestAnyMatch(t *testing.T) {
 		return v.(student).age > 20
 	})
 	fmt.Println(anyMatch)
+
+	anyMatch = New(students).Filter(func(v interface{}) bool {
+		return v.(student).age < 15
+	}).Peek(func(v interface{}) {
+		fmt.Println(v)
+	}).AnyMatch(func(v interface{}) bool {
+		return v.(student).age > 15
+	})
+	fmt.Println(anyMatch)
+
+	anyMatch = New(students).Skip(10).AnyMatch(func(v interface{}) bool {
+		return v.(student).age > 15
+	})
+	fmt.Println(anyMatch)
+
+	var ints = []int{}
+	anyMatch = New(ints).AnyMatch(func(v interface{}) bool {
+		return v.(int) > 0
+	})
+	fmt.Println(anyMatch)
 }
 
 func TestNoneMatch(t *testing.T) {
@@ -190,6 +231,26 @@ func TestNoneMatch(t *testing.T) {
 		fmt.Println(v)
 	}).NoneMatch(func(v interface{}) bool {
 		return v.(student).age > 20
+	})
+	fmt.Println(noneMatch)
+
+	noneMatch = New(students).Filter(func(v interface{}) bool {
+		return v.(student).age < 15
+	}).Peek(func(v interface{}) {
+		fmt.Println(v)
+	}).NoneMatch(func(v interface{}) bool {
+		return v.(student).age > 15
+	})
+	fmt.Println(noneMatch)
+
+	noneMatch = New(students).Skip(10).NoneMatch(func(v interface{}) bool {
+		return v.(student).age > 15
+	})
+	fmt.Println(noneMatch)
+
+	var ints = []int{}
+	noneMatch = New(ints).NoneMatch(func(v interface{}) bool {
+		return v.(int) > 0
 	})
 	fmt.Println(noneMatch)
 }
@@ -252,6 +313,12 @@ func TestToSlice(t *testing.T) {
 		return len(v.(student).name) > 3
 	}).ToSlice(&studentArray)
 	fmt.Println(studentArray)
+
+	var ints1 []int
+	var ints2 []int
+	New(ints1).ToSlice(&ints2)
+	fmt.Println(ints2)
+
 }
 
 func TestMaxMin(t *testing.T) {

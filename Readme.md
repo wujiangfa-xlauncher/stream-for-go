@@ -2,8 +2,30 @@
 Implementation of Java stream API by go language
 
 ----------
+**Usage**
+```
+import (
+	"fmt"
+	"github.com/wujiangfa-xlauncher/stream-for-go"
+)
 
-**Preparation**
+func main() {
+	var ints = []int{1, 3, 4, 5, -2, 1, 2, 3, 5, 7, 10, -6}
+	reduce := stream.New(ints).Filter(func(v interface{}) bool {
+		return v.(int) > 0
+	}).Distinct(func(i, j interface{}) bool {
+		return i == j
+	}).Peek(func(v interface{}) {
+		fmt.Println(v)
+	}).Reduce(func(t, u interface{}) interface{} {
+		return t.(int) + u.(int)
+	})
+	fmt.Println(reduce)
+}
+```
+----------
+
+**Demo Preparation**
 
     type student struct {
     	id int
