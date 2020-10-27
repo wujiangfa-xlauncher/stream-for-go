@@ -22,6 +22,7 @@ type Stream interface {
 	Reduce(function BiFunction) interface{}
 	ToSlice(targetSlice interface{})
 	MaxMin(comparator Comparator) interface{}
+	FindFirst(predicate Predicate) interface{}
 }
 
 type TerminalOp interface {
@@ -111,6 +112,32 @@ type pipeline struct {
 	nextStage               *pipeline
 	parallel, entered, stop bool
 	do                      func(nextStage *pipeline, v interface{})
+}
+
+func (p *pipeline) FindFirst(predicate Predicate) interface{} {
+	nilCheck(predicate)
+	t := &pipeline{
+		previousStage: p,
+		sourceStage:   p.sourceStage,
+		do: func(nextStage *pipeline, v interface{}) {
+			if p.sourceStage.parallel {
+				p.lock.Lock()
+				defer p.lock.Unlock()
+			}
+			if p.tmpData == nil {
+				match := predicate(v)
+				if match {
+					p.tmpData = append(p.tmpData, v)
+					p.sourceStage.stop = true
+				}
+			}
+		},
+	}
+	t.evaluate(&ForEachOp{})
+	if p.tmpData == nil {
+		return nil
+	}
+	return p.tmpData[0]
 }
 
 func (p *pipeline) MaxMin(comparator Comparator) interface{} {
