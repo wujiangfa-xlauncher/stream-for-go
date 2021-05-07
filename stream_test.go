@@ -71,6 +71,23 @@ func TestMap(t *testing.T) {
 	})
 }
 
+func TestFlatMap(t *testing.T) {
+	fmt.Println(t.Name() + ": by scores")
+	students := createStudents()
+	stream := New(students)
+	var data []int
+	stream.Peek(func(v interface{}) {
+		fmt.Printf("\t%v\n", v)
+	}).FlatMap(func(v interface{}) interface{} {
+		return v.(student).scores
+	}).Filter(func(v interface{}) bool {
+		return v.(int) > 90
+	}).Sorted(func(i, j interface{}) bool {
+		return i.(int) > j.(int)
+	}).ToSlice(&data)
+	fmt.Printf("\t%v\n", data)
+}
+
 func TestPeek(t *testing.T) {
 	students := createStudents()
 	New(students).Peek(func(v interface{}) {

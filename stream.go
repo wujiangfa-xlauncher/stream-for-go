@@ -9,6 +9,7 @@ import (
 type Stream interface {
 	Filter(predicate Predicate) Stream
 	Map(function Function) Stream
+	FlatMap(function Function) Stream
 	ForEach(consumer Consumer)
 	Peek(consumer Consumer) Stream
 	Limit(maxSize int) Stream
@@ -104,6 +105,8 @@ func stream(arr interface{}, parallel bool) Stream {
 	return p
 }
 
+var _ Stream = &pipeline{}
+
 type pipeline struct {
 	lock                    sync.Mutex
 	data, tmpData           []interface{}
@@ -112,6 +115,37 @@ type pipeline struct {
 	nextStage               *pipeline
 	parallel, entered, stop bool
 	do                      func(nextStage *pipeline, v interface{})
+}
+
+func (p *pipeline) FlatMap(function Function) Stream {
+	nilCheck(function)
+	t := &pipeline{
+		previousStage: p,
+		sourceStage:   p.sourceStage,
+		do: func(nextStage *pipeline, v interface{}) {
+			if p.sourceStage.parallel {
+				p.lock.Lock()
+				defer p.lock.Unlock()
+			}
+			out := function(v)
+			if out != nil {
+				data := make([]interface{}, 0)
+				dataValue := reflect.ValueOf(&data).Elem()
+				arrValue := reflect.ValueOf(out)
+				kindCheck(arrValue)
+				for i := 0; i < arrValue.Len(); i++ {
+					dataValue.Set(reflect.Append(dataValue, arrValue.Index(i)))
+				}
+				p.tmpData = append(p.tmpData, data...)
+			}
+		},
+	}
+	t.evaluate(&ForEachOp{})
+	t.data = p.tmpData
+	t.parallel = p.sourceStage.parallel
+	t.sourceStage = t
+	return t
+
 }
 
 func (p *pipeline) FindFirst(predicate Predicate) interface{} {
@@ -162,11 +196,13 @@ func (p *pipeline) ToSlice(targetSlice interface{}) {
 		previousStage: p,
 		sourceStage:   p.sourceStage,
 		do: func(nextStage *pipeline, v interface{}) {
-			if p.sourceStage.parallel {
-				p.lock.Lock()
-				defer p.lock.Unlock()
+			if v != nil {
+				if p.sourceStage.parallel {
+					p.lock.Lock()
+					defer p.lock.Unlock()
+				}
+				sliceValue.Set(reflect.Append(sliceValue, reflect.ValueOf(v)))
 			}
-			sliceValue.Set(reflect.Append(sliceValue, reflect.ValueOf(v)))
 		},
 	}
 	t.evaluate(&ForEachOp{})
@@ -407,6 +443,6 @@ func kindCheck(v reflect.Value) {
 		v = v.Elem()
 	}
 	if v.Kind() != reflect.Slice && v.Kind() != reflect.Array {
-		panic("the type of arr parameter must be Array or Slice")
+		panic("type must be Array or Slice")
 	}
 }
