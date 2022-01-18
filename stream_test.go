@@ -338,6 +338,26 @@ func TestToSlice(t *testing.T) {
 
 }
 
+func TestGroup(t *testing.T) {
+	students := createStudents()
+	group := New(students).Group(func(v interface{}) interface{} {
+		return v.(student).age
+	})
+	t.Log(group)
+}
+
+func TestGroup1(t *testing.T) {
+	students := createStudents()
+	group := New(students).Peek(func(v interface{}) {
+		t.Log(v)
+	}).Filter(func(v interface{}) bool {
+		return v.(student).age > 20
+	}).Group(func(v interface{}) interface{} {
+		return v.(student).age
+	})
+	t.Log(group)
+}
+
 func TestMaxMin(t *testing.T) {
 	students := createStudents()
 	max := New(students).MaxMin(func(i, j interface{}) bool {

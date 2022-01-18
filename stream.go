@@ -24,6 +24,7 @@ type Stream interface {
 	ToSlice(targetSlice interface{})
 	MaxMin(comparator Comparator) interface{}
 	FindFirst(predicate Predicate) interface{}
+	Group(function Function) map[interface{}][]interface{}
 }
 
 type TerminalOp interface {
@@ -115,6 +116,32 @@ type pipeline struct {
 	nextStage               *pipeline
 	parallel, entered, stop bool
 	do                      func(nextStage *pipeline, v interface{})
+}
+
+func (p *pipeline) Group(function Function) map[interface{}][]interface{} {
+	nilCheck(function)
+	res := make(map[interface{}][]interface{})
+	t := &pipeline{
+		previousStage: p,
+		sourceStage:   p.sourceStage,
+		do: func(nextStage *pipeline, v interface{}) {
+			if p.sourceStage.parallel {
+				p.lock.Lock()
+				defer p.lock.Unlock()
+			}
+			out := function(v)
+			if out != nil {
+				if value, ok := res[out]; ok {
+					value = append(value, v)
+					res[out] = value
+				} else {
+					res[out] = []interface{}{v}
+				}
+			}
+		},
+	}
+	t.evaluate(&ForEachOp{})
+	return res
 }
 
 func (p *pipeline) FlatMap(function Function) Stream {
