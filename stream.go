@@ -8,6 +8,7 @@ import (
 
 //Stream 实现javastream api部分功能
 type Stream interface {
+	//过滤
 	Filter(predicate Predicate) Stream
 	Map(function Function) Stream
 	FlatMap(function Function) Stream
