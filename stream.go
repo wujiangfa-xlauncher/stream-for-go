@@ -6,6 +6,7 @@ import (
 	"sync"
 )
 
+//Stream 实现javastream api部分功能
 type Stream interface {
 	Filter(predicate Predicate) Stream
 	Map(function Function) Stream
